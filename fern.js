@@ -10,8 +10,7 @@ SVG.on(document, 'DOMContentLoaded', function () {
       {
       },
       {
-      },
-      {
+        isLeaf: true
       }
     ], 
     {
@@ -19,21 +18,22 @@ SVG.on(document, 'DOMContentLoaded', function () {
       startScale: 0.3,
       endScale: 0.1,
       numChildren: 10,
-      angle: 70
+      angle: 70,
+      curve: 2
     }
   );
 
-  // var fern = idealFern(draw, settings);
-  // fern.transform({
-  //   translateX: 500,
-  //   translateY: 50
-  // })
-  // .rotate(90, 0,0)
-  // .scale(22, 0, 0);
-  var leaf = drawLeaf(draw, settings)
-  .translate(500, 50)
-  .rotate(90, 0, 0)
+  var fern = idealFern(draw, settings);
+  fern.transform({
+    translateX: 500,
+    translateY: 50
+  })
+  .rotate(90, 0,0)
   .scale(22, 0, 0);
+  // var leaf = drawLeaf(draw, settings)
+  // .translate(500, 50)
+  // .rotate(90, 0, 0)
+  // .scale(22, 0, 0);
 });
 
 function Settings(levels, config) {
@@ -63,27 +63,59 @@ function lerp(x, y, frac) {
   return (y - x) * frac + x;
 }
 
-function pToS(p) {
-  return p.x + ',' + p.y + ' ';
+function s(p) {
+  return p.x + ',' + p.y;
 }
 
 function psToString(ps) {
-  return 'M'+pToS(ps[0])+'C'+pToS(ps[1])+pToS(ps[2])+pToS(ps[3])+'S'+pToS(ps[4])+pToS(ps[5])+'z';
+  var p = _.map(ps, (x) => x[0] + ',' + x[1]);
+  return `M${p[0]} C${p[1]} ${p[2]} ${p[3]} S${p[4]} ${p[5]} C${p[6]} ${p[7]} ${p[8]} S${p[9]} ${p[10]} z`
 }
+
+function flipPoints(points) {
+  var ret = [];
+  for (var i=0; i < points.length; i++) {
+    ret[i] = {
+      x: points[i].x,
+      y: -points[i].y
+    }
+  }
+  return ret;
+}
+
+function modifyLeaf(ps, settings) {
+  return _.map(ps, (point) => {
+    var [x, y] = point;
+    var curveFactor = settings.get('curve') * 0.001;
+
+    return [
+      x,
+      y + (curveFactor * x*x)
+    ];
+  });
+}
+
+
 function drawLeaf(draw, settings) {
   var group = draw.group();
-  var ps = [{x:0,y:0}, {x:10,y:0}, {x:40,y:10}, {x:50,y:10},{x:90,y:0}, {x:100,y:0}]
+  var ps = [
+    [0,0], [10,0], [30,10], [40,10], [90,0], [100,0],
+    [90,0], [50,-10], [40,-10], [10, 0], [0,0]
+  ];
+  ps = modifyLeaf(ps, settings);
   var pathString = psToString(ps);
-  var path = group.path(pathString).stroke({color:settings.get('color')})
-  var flipped = path.clone(group).flip('y');
+  var path = group.path(pathString).stroke({color: settings.get('color')})
   return group;
 }
 
 function idealFern(draw, settings) {
   var group = draw.group();
 
-  
-  group.line(0, 0, 100, 0).stroke({width: 1, color: settings.get('color'), linecap: 'round'});
+  if (settings.get('isLeaf')) {
+    var leaf = drawLeaf(group, settings)
+  } else {
+    group.line(0, 0, 100, 0).stroke({width: 1, color: settings.get('color'), linecap: 'round'});
+  }
 
   var nextLevel = settings.nextLevel();
 
