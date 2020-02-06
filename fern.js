@@ -63,10 +63,19 @@ function lerp(x, y, frac) {
   return (y - x) * frac + x;
 }
 
+function pToS(p) {
+  return p.x + ',' + p.y + ' ';
+}
 
+function psToString(ps) {
+  return 'M'+pToS(ps[0])+'C'+pToS(ps[1])+pToS(ps[2])+pToS(ps[3])+'S'+pToS(ps[4])+pToS(ps[5])+'z';
+}
 function drawLeaf(draw, settings) {
   var group = draw.group();
-  group.path('M0,0 C10,0 40,10 50,10 S90,0 100,0 z').stroke({color:settings.get('color')})
+  var ps = [{x:0,y:0}, {x:10,y:0}, {x:40,y:10}, {x:50,y:10},{x:90,y:0}, {x:100,y:0}]
+  var pathString = psToString(ps);
+  var path = group.path(pathString).stroke({color:settings.get('color')})
+  var flipped = path.clone(group).flip('y');
   return group;
 }
 
