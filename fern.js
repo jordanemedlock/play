@@ -1,65 +1,94 @@
+
 SVG.on(document, 'DOMContentLoaded', function () {
   var draw = SVG().addTo('body').size(1125, 2436);
   var rect = draw.rect(1125, 2436).attr({fill: 'aquamarine'});
 
-  var fern = idealFern(draw, 
+  var settings = new Settings(
     [
       {
-        startScale: 0.3,
-        endScale: 0.1,
-        numChildren: 10,
-        angle: 70
       },
       {
-        startScale: 0.3,
-        endScale: 0.1,
-        numChildren: 10,
-        angle: 70
       },
       {
-        startScale: 0.3,
-        endScale: 0.1,
-        numChildren: 10,
-        angle: 70
       },
       {
-        
       }
     ], 
     {
-      color: '#243'
+      color: '#243',
+      startScale: 0.3,
+      endScale: 0.1,
+      numChildren: 10,
+      angle: 70
     }
   );
-  fern.transform({
-    translateX: 500,
-    translateY: 50
-  })
-  .rotate(90, 0,0)
+
+  // var fern = idealFern(draw, settings);
+  // fern.transform({
+  //   translateX: 500,
+  //   translateY: 50
+  // })
+  // .rotate(90, 0,0)
+  // .scale(22, 0, 0);
+  var leaf = drawLeaf(draw, settings)
+  .translate(500, 50)
+  .rotate(90, 0, 0)
   .scale(22, 0, 0);
 });
+
+function Settings(levels, config) {
+  return {
+    levels: levels,
+    config: config,
+    get: function(name) {
+      if (this.levels[0][name]) {
+        return this.levels[0][name];
+      } else if (this.config[name]) {
+        return this.config[name];
+      } else {
+        return null;
+      }
+    },
+    nextLevel: function() {
+      if (this.levels.length > 1) {
+        return new Settings(this.levels.slice(1), this.config);
+      } else {
+        return null;
+      }
+    }
+  }
+}
 
 function lerp(x, y, frac) {
   return (y - x) * frac + x;
 }
 
-function idealFern(draw, levels, config) {
+
+function drawLeaf(draw, settings) {
+  var group = draw.group();
+  group.path('M0,0 C10,0 40,10 50,10 S90,0 100,0 z').stroke({color:settings.get('color')})
+  return group;
+}
+
+function idealFern(draw, settings) {
   var group = draw.group();
 
   
-  group.line(0, 0, 100, 0).stroke({width: 1, color: config.color, linecap: 'round'});
+  group.line(0, 0, 100, 0).stroke({width: 1, color: settings.get('color'), linecap: 'round'});
 
-  if (levels.length > 1) {
-    var level = levels[0];
-    var scale = level.startScale;
-    var deltaX = 100 / level.numChildren;
-    for (var i=0; i < level.numChildren; i++) {
-      var frac = i / level.numChildren;
-      var child = idealFern(group, levels.slice(1), config);
-      var scale = lerp(level.startScale, level.endScale, frac);
+  var nextLevel = settings.nextLevel();
+
+  if (nextLevel) {
+    var numChildren = settings.get('numChildren');
+    var deltaX = 100 / numChildren;
+    for (var i=0; i < numChildren; i++) {
+      var frac = i / numChildren;
+      var child = idealFern(group, nextLevel);
+      var scale = lerp(settings.get('startScale'), settings.get('endScale'), frac);
       child
       .translate(deltaX * i, 0)
       .scale(scale, 0, 0)
-      .rotate(i % 2 ? level.angle : -level.angle, 0, 0);
+      .rotate(i % 2 ? settings.get('angle') : -settings.get('angle'), 0, 0);
     }
   }
 
